@@ -196,4 +196,36 @@ Use all 4 ports and combine them as 1 single port. What happens here, you can us
 
 LACP + multi-queue + multi-stream traffic
 
+========================================
+Port Config :
+========================================
+
+Notes: Here we have total 5 Ethernet ports.
+1 - iDRAC port -- Remote Access Control to view BIOS setting and recover Proxmox and other BIOS settings.
+2,3,4,5 - 10 GB Ethernet ports.
+FYI, Each Ethernet ports have separate MacAddresses and IP addresses canbe assigned individually.
+
+Step1: You can configure the reserved IP address by logging into the Router and under connected devices. Add the MacAddress, device name and add a fixed IP.
+Step 2: Now on the Dell server in the iDRAC IP address setting.
+You have two modes. 
+a) IP Address Allocation Mode 
+b) Network Card (NIC) selection Mode.
+
+When you select IP address Allocation Mode, you have two options.
+1) Static --> To set a Static IP address --> Add the same IP address that you provided on the IP under reserved IP.
+2) DHCP(Default) : Here the iDRAC contacts the DHCP server(in our case the Router) and requets an IP. As there is an existing Mac address entry of the iDRAC port with a dedicated reserved IP address the DHCP server assigns the ssame IP to the iDRAC port.
+
+--b) When you select the other option - Network Interface Card (NIC) selection mode :
+1) Dedicated (default on Enterprise) -- iDRAC traffic uses only the single, dedicated iDRAC network port on the back of the server(marked with the wrench icon). This keeps your remote management traffic completely physically separated from your main server traffic data.
+
+2) Shared(LOM1 / LOM2 / LOM3 / LOM4): In this case iDRAC traffic runs parallel to any of the network ports. This happens when the original iDRAC port has been damaged or you only have one network cable to connect.
+- Here two IP address resides on the same port1/2/3/4 of the NIC. And on the router you can give two separte MAC address and reserved IP's and connect via a single cable and the traffic gets split. physical macaddress of the prot1 and the virtual mac address of iDRAC sits on the same physical NIC port.
+
+When you share a port, that single physical ethernet cable will carry traffic for two completely independent devices (the physical iDRAC processor and your Proxmox operating system), each with its own IP and MAC address.
+The network card inside your Dell server acts like a tiny, built-in network switch.
+
+FYI, You cannot use both Dedicated iDRAC port and the LOM1/LOM2 port together and can be only used simultaneously.
+How the packet routing handles this without conflicts:When a packet arrives at the LOM1 port from your switch, the network card checks the VLAN ID.If the packet is tagged VLAN 10, the network card diverts it internally straight to the iDRAC processor. Proxmox will never even see this packet.If the packet is tagged VLAN 20, the network card passes it directly up to the Proxmox hypervisor. The iDRAC completely ignores it.
+3) Shared (LOM All): All ports act as iDRAC ports + server ports.
+4) FailOver mode : To the point iDRAC port fails it works as the primary iDRAC port. But when it fails. It chooses one of the active LOM ports to be the IDRAC port in that case.
 
